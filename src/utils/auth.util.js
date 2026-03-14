@@ -20,6 +20,15 @@ const createTokenPair = async (payload, privateKey) => {
   }
 };
 
+const verifyToken = async (token, secretKey) => {
+  try {
+    return JWT.verify(token, secretKey);
+  } catch (error) {
+    throw error;
+  }
+};
+
 module.exports = {
   createTokenPair,
+  verifyToken,
 };

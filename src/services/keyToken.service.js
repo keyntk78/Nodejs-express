@@ -30,6 +30,14 @@ class KeyTokenService {
       throw error;
     }
   };
+
+  static removeKeyTokenByUserId = async (userId) => {
+    return keyTokenModel.deleteOne({ user: userId });
+  };
+
+  static findByUserId = async (userId) => {
+    return keyTokenModel.findOne({ user: userId }).lean();
+  };
 }
 
 module.exports = KeyTokenService;

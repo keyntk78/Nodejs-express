@@ -136,6 +136,11 @@ class AuthService {
       tokens,
     };
   };
+
+  static signOut = async (userId) => {
+    const result = await KeyTokenService.removeKeyTokenByUserId(userId);
+    return result;
+  };
 }
 
 module.exports = AuthService;

@@ -1,10 +1,14 @@
 "use strict";
 
 const apiKeyService = require("../services/apikey.service");
+const KeyTokenService = require("../services/keyToken.service");
+const { verifyToken } = require("../utils/auth.util");
+const { UnauthorizedError } = require("../core/error.response");
 
 const HEADER = {
   API_KEY: "x-api-key",
   AUTHORIZATION: "authorization",
+  CLIENT_ID: "x-client-id",
 };
 
 const apiKey = async (req, res, next) => {
@@ -63,7 +67,39 @@ const permission = (permission) => {
   };
 };
 
+const authentication = async (req, res, next) => {
+  try {
+    const accessToken = req.headers[HEADER.AUTHORIZATION]?.replace(
+      "Bearer ",
+      "",
+    );
+    const clientId = req.headers[HEADER.CLIENT_ID]?.toString();
+
+    if (!accessToken || !clientId) {
+      throw new UnauthorizedError("Authorization and x-client-id are required");
+    }
+
+    const keyStore = await KeyTokenService.findByUserId(clientId);
+    if (!keyStore) {
+      throw new UnauthorizedError("Invalid request");
+    }
+
+    const decoded = await verifyToken(accessToken, keyStore.privateKey);
+    if (decoded.userId !== clientId) {
+      throw new UnauthorizedError("Invalid request");
+    }
+
+    req.user = decoded;
+    req.keyStore = keyStore;
+    return next();
+  } catch (error) {
+    next(error);
+  }
+};
+
 module.exports = {
   apiKey,
   permission,
+  authentication,
+  HEADER,
 };
