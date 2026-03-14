@@ -1,0 +1,14 @@
+services:
+  mongodb:
+    image: mongo:7
+    container_name: js-tip-mongodb
+    restart: unless-stopped
+    ports:
+      - "27018:27017"  # host:container (27017 đã bị chiếm bởi MongoDB local)
+    volumes:
+      - mongodb_data:/data/db
+    environment:
+      MONGO_INITDB_DATABASE: js-tip
+
+volumes:
+  mongodb_data:

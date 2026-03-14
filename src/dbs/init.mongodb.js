@@ -16,7 +16,7 @@ class Database {
     }
 
     mongoose
-      .connect(`mongodb://${config.host}:${config.port}/${config.name}`)
+      .connect(config.uri)
       .then(() => {
         console.log("mongo connected");
         countConnect();
