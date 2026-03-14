@@ -38,6 +38,33 @@ class KeyTokenService {
   static findByUserId = async (userId) => {
     return keyTokenModel.findOne({ user: userId }).lean();
   };
+
+  static findByRefreshTokenUsed = async (refreshToken) => {
+    return keyTokenModel.findOne({ refreshTokensUsed: refreshToken }).lean();
+  };
+
+  static findByRefreshToken = async (refreshToken) => {
+    return keyTokenModel.findOne({ refreshToken }).lean();
+  };
+
+  static deleteKeyById = async (userId) => {
+    return keyTokenModel.deleteOne({ user: userId });
+  };
+
+  static updateRefreshToken = async (
+    userId,
+    oldRefreshToken,
+    newRefreshToken,
+  ) => {
+    return keyTokenModel.findOneAndUpdate(
+      { user: userId },
+      {
+        $push: { refreshTokensUsed: oldRefreshToken },
+        refreshToken: newRefreshToken,
+      },
+      { new: true },
+    );
+  };
 }
 
 module.exports = KeyTokenService;

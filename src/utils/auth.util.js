@@ -28,7 +28,12 @@ const verifyToken = async (token, secretKey) => {
   }
 };
 
+const decodeToken = (token) => {
+  return JWT.decode(token);
+};
+
 module.exports = {
   createTokenPair,
   verifyToken,
+  decodeToken,
 };

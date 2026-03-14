@@ -3,7 +3,7 @@
 const shopModel = require("../models/shop.model");
 const bcrypt = require("bcrypt");
 const crypto = require("crypto");
-const { createTokenPair } = require("../utils/auth.util");
+const { createTokenPair, verifyToken } = require("../utils/auth.util");
 const { getInfoData } = require("../utils/object.util");
 const KeyTokenService = require("./keyToken.service");
 const { RoleShop } = require("../constants/role.constant");
@@ -12,6 +12,7 @@ const {
   BadRequestError,
   NotFoundError,
   UnauthorizedError,
+  ForbiddenError,
 } = require("../core/error.response");
 
 class AuthService {
@@ -140,6 +141,59 @@ class AuthService {
   static signOut = async (userId) => {
     const result = await KeyTokenService.removeKeyTokenByUserId(userId);
     return result;
+  };
+
+  static refreshToken = async (refreshToken) => {
+    if (!refreshToken) {
+      throw new BadRequestError("Refresh token is required");
+    }
+
+    // check xem token này đã được sử dụng chưa?
+    const foundToken = await KeyTokenService.findByRefreshTokenUsed(refreshToken);
+    if (foundToken) {
+      // nếu có -> decode xem may la thang nao, xóa tất cả token trong keyStore
+      const { userId } = await verifyToken(refreshToken, foundToken.privateKey);
+      await KeyTokenService.deleteKeyById(userId);
+      throw new ForbiddenError("Something wrong happened!! Pls relogin");
+    }
+
+    // NO, qua ngon - find holder token
+    const holderToken = await KeyTokenService.findByRefreshToken(refreshToken);
+    if (!holderToken) {
+      throw new UnauthorizedError("Shop not registered");
+    }
+
+    // verify token
+    const { userId, email } = await verifyToken(
+      refreshToken,
+      holderToken.privateKey,
+    );
+
+    // check userId - shop exists
+    const foundShop = await shopModel.findOne({ email }).lean();
+    if (!foundShop) {
+      throw new UnauthorizedError("Shop not registered");
+    }
+
+    // create 1 cặp mới
+    const tokens = await createTokenPair(
+      {
+        userId,
+        email,
+        name: foundShop.name,
+        roles: foundShop.roles,
+      },
+      holderToken.privateKey,
+    );
+
+    // lưu lại: refresh token mới + đẩy refresh token cũ vào refreshTokensUsed
+    await KeyTokenService.updateRefreshToken(
+      userId,
+      refreshToken,
+      tokens.refreshToken,
+    );
+
+    return tokens;
   };
 }
 
